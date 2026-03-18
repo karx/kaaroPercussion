@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KaaroPercussion — Master the Silence Between the Beats</title>
+  <meta name="description" content="A self-paced, gamified percussion training tool. From foundational rhythm to advanced temporal architecture.">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥁</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header id="app-header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">&#127925;</div>
+        <div class="logo-text">Kaaro<span>Percussion</span></div>
+      </div>
+      <div class="xp-bar-container">
+        <div class="xp-bar-label">
+          <span id="xp-label">0 / 250 XP</span>
+          <span id="level-label">Lvl 1</span>
+        </div>
+        <div class="xp-bar">
+          <div class="xp-bar-fill" id="xp-bar-fill" style="width: 0%"></div>
+        </div>
+      </div>
+      <div class="header-stats">
+        <span class="level-badge" id="level-badge">Novice</span>
+        <div class="stat-badge">
+          <span class="icon">&#128293;</span>
+          <span class="value" id="streak-value">0</span>
+          <span>day streak</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Phase Navigation -->
+  <nav id="phase-nav">
+    <div class="phase-nav-inner" id="phase-nav-inner">
+      <!-- Populated by JS -->
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main id="app-content">
+    <!-- Views rendered here by JS -->
+  </main>
+
+  <!-- Metronome Toggle Button -->
+  <button class="metronome-toggle" id="metronome-toggle" title="Toggle Metronome">
+    &#9834;
+  </button>
+
+  <!-- Metronome Panel -->
+  <div id="metronome-panel">
+    <div class="metronome-inner">
+      <div class="metronome-header">
+        <h3>Metronome</h3>
+        <button class="metronome-close" id="metronome-close">&times;</button>
+      </div>
+      <div class="metronome-pulse" id="metronome-pulse">
+        <!-- Pulse dots populated by JS -->
+      </div>
+      <div class="metronome-bpm-display">
+        <div class="metronome-bpm-value" id="bpm-display">70</div>
+        <div class="metronome-bpm-label">BPM</div>
+      </div>
+      <input type="range" class="metronome-slider" id="bpm-slider" min="30" max="300" value="70">
+      <div class="metronome-controls">
+        <button class="metro-btn" id="bpm-down">-5</button>
+        <button class="metro-btn play-btn" id="metro-play">&#9654; Play</button>
+        <button class="metro-btn" id="bpm-up">+5</button>
+        <button class="metro-btn" id="tap-tempo">Tap</button>
+      </div>
+      <div class="metronome-options">
+        <div class="metro-option">
+          <label>Time Sig</label>
+          <select id="time-sig">
+            <option value="2">2/4</option>
+            <option value="3">3/4</option>
+            <option value="4" selected>4/4</option>
+            <option value="5">5/4</option>
+            <option value="6">6/8</option>
+            <option value="7">7/8</option>
+          </select>
+        </div>
+        <div class="metro-option">
+          <label>Subdivision</label>
+          <select id="subdivision">
+            <option value="1" selected>Quarter</option>
+            <option value="2">Eighth</option>
+            <option value="3">Triplet</option>
+            <option value="4">Sixteenth</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
