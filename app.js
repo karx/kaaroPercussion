@@ -207,7 +207,7 @@
   };
 
   // ============================================================
-  // METRONOME (Web Audio API)
+  // METRONOME (Web Audio API) — with ghost beat modes
   // ============================================================
   const Metro = {
     audioCtx: null,
@@ -219,8 +219,16 @@
     currentSubBeat: 0,
     nextNoteTime: 0,
     schedulerTimer: null,
-    lookahead: 25,      // ms - how often scheduler runs
-    scheduleAhead: 0.1, // seconds - how far ahead to schedule
+    lookahead: 25,
+    scheduleAhead: 0.1,
+
+    // Ghost beat system
+    ghostMode: 'all',      // 'all', '2-4', '1-3', 'synco-e', 'synco-and', 'silent-bars'
+    currentBar: 0,         // bar counter for silent-bars mode
+    silentBarPattern: [true, true, false, false],  // true=audible, false=silent (alternating 2 on / 2 off)
+
+    // Beat timestamps for accuracy tracking
+    beatTimestamps: [],    // array of { time: audioCtx.currentTime, beat, subBeat }
 
     init() {
       if (!this.audioCtx) {
@@ -229,7 +237,6 @@
       if (this.audioCtx.state === 'suspended') {
         this.audioCtx.resume();
       }
-      // Load saved settings
       const s = State.progress.metronomeSettings;
       if (s) {
         this.bpm = s.bpm || 70;
@@ -243,6 +250,8 @@
       this.isPlaying = true;
       this.currentBeat = 0;
       this.currentSubBeat = 0;
+      this.currentBar = 0;
+      this.beatTimestamps = [];
       this.nextNoteTime = this.audioCtx.currentTime;
       this.scheduler();
       document.getElementById('metro-play').innerHTML = '&#9724; Stop';
@@ -256,8 +265,11 @@
       document.getElementById('metro-play').innerHTML = '&#9654; Play';
       document.getElementById('metro-play').classList.remove('playing');
       document.getElementById('metronome-toggle').classList.remove('active');
-      // Clear pulse dots
-      document.querySelectorAll('.pulse-dot').forEach(d => d.classList.remove('active'));
+      document.querySelectorAll('.pulse-dot').forEach(d => {
+        d.classList.remove('active');
+      });
+      const barCounter = document.getElementById('ghost-bar-counter');
+      if (barCounter) barCounter.textContent = '';
     },
 
     toggle() {
@@ -273,35 +285,92 @@
       this.schedulerTimer = setTimeout(() => this.scheduler(), this.lookahead);
     },
 
-    scheduleNote(time, beat, subBeat) {
-      const osc = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
+    // Determine if a beat/subBeat should be audible given the ghost mode
+    isBeatAudible(beat, subBeat) {
+      switch (this.ghostMode) {
+        case 'all':
+          return true;
 
-      let freq, duration, vol;
-      if (subBeat === 0 && beat === 0) {
-        // Downbeat accent
-        freq = 1000; duration = 0.05; vol = 0.6;
-      } else if (subBeat === 0) {
-        // Beat
-        freq = 800; duration = 0.04; vol = 0.4;
-      } else {
-        // Subdivision
-        freq = 600; duration = 0.03; vol = 0.2;
+        case '2-4':
+          // Only beats 2 and 4 (0-indexed: 1 and 3) are audible, subdivisions silent
+          if (subBeat !== 0) return false;
+          return beat === 1 || beat === 3;
+
+        case '1-3':
+          // Only beats 1 and 3 (0-indexed: 0 and 2) are audible
+          if (subBeat !== 0) return false;
+          return beat === 0 || beat === 2;
+
+        case 'synco-e':
+          // Only the "e" partial (subBeat 1 in subdivision=4, or subBeat 1 in subdivision=2)
+          if (this.subdivision >= 2) return subBeat === 1;
+          return false;
+
+        case 'synco-and':
+          // Only the "&" partial
+          if (this.subdivision >= 2) {
+            // In eighth notes (sub=2), "&" is subBeat 1
+            // In sixteenths (sub=4), "&" is subBeat 2
+            if (this.subdivision === 2) return subBeat === 1;
+            if (this.subdivision >= 3) return subBeat === 2;
+          }
+          return false;
+
+        case 'silent-bars':
+          return this.silentBarPattern[this.currentBar % this.silentBarPattern.length];
+
+        default:
+          return true;
+      }
+    },
+
+    scheduleNote(time, beat, subBeat) {
+      const audible = this.isBeatAudible(beat, subBeat);
+
+      // Always record beat timestamps for accuracy tracking
+      if (subBeat === 0) {
+        this.beatTimestamps.push({ time, beat });
+        // Keep only last 32 timestamps
+        if (this.beatTimestamps.length > 32) this.beatTimestamps.shift();
+      }
+      // Also record subdivision timestamps
+      this.beatTimestamps.push({ time, beat, subBeat, isSubdivision: subBeat !== 0 });
+      if (this.beatTimestamps.length > 64) this.beatTimestamps.shift();
+
+      if (audible) {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+
+        let freq, duration, vol;
+        if (subBeat === 0 && beat === 0) {
+          freq = 1000; duration = 0.05; vol = 0.6;
+        } else if (subBeat === 0) {
+          freq = 800; duration = 0.04; vol = 0.4;
+        } else {
+          freq = 600; duration = 0.03; vol = 0.2;
+        }
+
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+        osc.start(time);
+        osc.stop(time + duration);
       }
 
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(vol, time);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-      osc.start(time);
-      osc.stop(time + duration);
-
-      // Schedule UI update
+      // Schedule UI update for quarter-note beats
       const msUntil = (time - this.audioCtx.currentTime) * 1000;
       if (subBeat === 0) {
-        setTimeout(() => this.updatePulseUI(beat), Math.max(0, msUntil));
+        setTimeout(() => this.updatePulseUI(beat, audible), Math.max(0, msUntil));
       }
+
+      // Notify accent grid playback
+      setTimeout(() => {
+        if (State._accentGridCallback) {
+          State._accentGridCallback(beat, subBeat);
+        }
+      }, Math.max(0, msUntil));
     },
 
     advanceBeat() {
@@ -315,12 +384,21 @@
         this.currentBeat++;
         if (this.currentBeat >= this.timeSig) {
           this.currentBeat = 0;
+          this.currentBar++;
+          // Update bar counter display for silent-bars mode
+          if (this.ghostMode === 'silent-bars') {
+            const el = document.getElementById('ghost-bar-counter');
+            if (el) {
+              const isAudible = this.silentBarPattern[this.currentBar % this.silentBarPattern.length];
+              el.innerHTML = `Bar <span class="bar-num">${this.currentBar + 1}</span> ${isAudible ? '&#128266;' : '<span class="silent-label">SILENT</span>'}`;
+            }
+          }
         }
       }
     },
 
-    updatePulseUI(beat) {
-      const dots = document.querySelectorAll('.pulse-dot');
+    updatePulseUI(beat, audible) {
+      const dots = document.querySelectorAll('#metronome-pulse .pulse-dot');
       dots.forEach((d, i) => {
         d.classList.toggle('active', i === beat);
         d.classList.toggle('downbeat', i === 0);
@@ -350,12 +428,37 @@
       if (this.isPlaying) { this.stop(); this.start(); }
     },
 
+    setGhostMode(mode) {
+      this.ghostMode = mode;
+      // Update button UI
+      document.querySelectorAll('.ghost-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.ghost === mode);
+      });
+      // Update pulse dot ghost styling
+      this.renderPulseDots();
+      // Clear bar counter if not silent-bars
+      if (mode !== 'silent-bars') {
+        const el = document.getElementById('ghost-bar-counter');
+        if (el) el.textContent = '';
+      }
+      // For syncopation modes, force subdivision to at least 2
+      if ((mode === 'synco-e' || mode === 'synco-and') && this.subdivision < 2) {
+        this.setSubdivision(mode === 'synco-and' ? 4 : 2);
+        document.getElementById('subdivision').value = this.subdivision;
+      }
+      if (this.isPlaying) { this.stop(); this.start(); }
+    },
+
     renderPulseDots() {
       const container = document.getElementById('metronome-pulse');
       container.innerHTML = '';
       for (let i = 0; i < this.timeSig; i++) {
         const dot = document.createElement('div');
         dot.className = 'pulse-dot';
+        // Mark ghost beats visually
+        if (!this.isBeatAudible(i, 0)) {
+          dot.classList.add('ghost');
+        }
         container.appendChild(dot);
       }
     },
@@ -367,6 +470,11 @@
       this.tapTimes.push(now);
       if (this.tapTimes.length > 5) this.tapTimes.shift();
       if (this.tapTimes.length >= 2) {
+        const last2 = this.tapTimes.slice(-2);
+        if (last2[1] - last2[0] > 2000) {
+          this.tapTimes = [now];
+          return;
+        }
         let total = 0;
         for (let i = 1; i < this.tapTimes.length; i++) {
           total += this.tapTimes[i] - this.tapTimes[i - 1];
@@ -375,13 +483,376 @@
         const bpm = Math.round(60000 / avg);
         this.setBPM(bpm);
       }
-      // Reset if gap > 2s
-      if (this.tapTimes.length >= 2) {
-        const last2 = this.tapTimes.slice(-2);
-        if (last2[1] - last2[0] > 2000) {
-          this.tapTimes = [now];
+    },
+
+    // Get the closest beat timestamp to a given audioCtx time
+    getClosestBeatTime(tapTime) {
+      if (!this.beatTimestamps.length) return null;
+      let closest = this.beatTimestamps[0];
+      let minDiff = Math.abs(tapTime - closest.time);
+      for (const bt of this.beatTimestamps) {
+        const diff = Math.abs(tapTime - bt.time);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = bt;
         }
       }
+      return { ...closest, offsetMs: (tapTime - closest.time) * 1000 };
+    }
+  };
+
+  // ============================================================
+  // TAP PADS — Virtual drum pads with timing accuracy
+  // ============================================================
+  const TapPads = {
+    pads: [
+      { id: 'hihat',  label: 'Hi-Hat', key: 'Q', freq: 6500, type: 'noise', color: 'hihat' },
+      { id: 'snare',  label: 'Snare',  key: 'W', freq: 250,  type: 'noise-tone', color: 'snare' },
+      { id: 'crash',  label: 'Crash',  key: 'E', freq: 5000, type: 'noise', color: 'crash' },
+      { id: 'tom1',   label: 'Tom 1',  key: 'A', freq: 200,  type: 'tone', color: 'tom1' },
+      { id: 'kick',   label: 'Kick',   key: 'S', freq: 60,   type: 'kick', color: 'kick' },
+      { id: 'tom2',   label: 'Tom 2',  key: 'D', freq: 140,  type: 'tone', color: 'tom2' },
+    ],
+
+    playSound(pad) {
+      Metro.init(); // ensure AudioContext
+      const ctx = Metro.audioCtx;
+      const now = ctx.currentTime;
+
+      if (pad.type === 'kick') {
+        // Kick: sine with pitch drop
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.12);
+        gain.gain.setValueAtTime(0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (pad.type === 'noise' || pad.type === 'noise-tone') {
+        // Noise burst for hi-hat, snare, crash
+        const bufferSize = ctx.sampleRate * 0.08;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        // Bandpass for character
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = pad.freq;
+        filter.Q.value = pad.id === 'hihat' ? 3 : 0.8;
+
+        const gain = ctx.createGain();
+        const vol = pad.id === 'crash' ? 0.3 : 0.5;
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (pad.id === 'crash' ? 0.25 : 0.1));
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(now);
+        noise.stop(now + 0.25);
+
+        // Add tone body for snare
+        if (pad.type === 'noise-tone') {
+          const osc = ctx.createOscillator();
+          const g2 = ctx.createGain();
+          osc.frequency.value = pad.freq;
+          g2.gain.setValueAtTime(0.4, now);
+          g2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(g2);
+          g2.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        }
+      } else {
+        // Tone for toms
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(pad.freq, now);
+        osc.frequency.exponentialRampToValueAtTime(pad.freq * 0.7, now + 0.2);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+    },
+
+    hitPad(padId) {
+      const pad = this.pads.find(p => p.id === padId);
+      if (!pad) return;
+
+      this.playSound(pad);
+
+      // Visual feedback
+      const el = document.querySelector(`.tap-pad.pad-${padId}`);
+      if (el) {
+        el.classList.add('hit');
+        setTimeout(() => el.classList.remove('hit'), 120);
+      }
+
+      // Accuracy tracking if metronome is playing
+      if (Metro.isPlaying && Metro.audioCtx) {
+        const tapTime = Metro.audioCtx.currentTime;
+        const closest = Metro.getClosestBeatTime(tapTime);
+        if (closest) {
+          AccuracyTracker.recordHit(closest.offsetMs);
+        }
+      }
+    },
+
+    renderPads() {
+      let html = `<div class="tap-pad-container">
+        <div class="tap-pad-header">
+          <h4>Tap Pads</h4>
+          <span class="text-muted" style="font-size:0.7rem">Use keyboard keys or tap/click</span>
+        </div>
+        <div class="tap-pad-grid">`;
+      for (const pad of this.pads) {
+        html += `<button class="tap-pad pad-${pad.color}" data-action="tap-pad" data-pad="${pad.id}">
+          ${pad.label}
+          <span class="pad-key">${pad.key}</span>
+        </button>`;
+      }
+      html += `</div>
+        <div class="tap-accuracy">
+          <div class="accuracy-last-hit" id="accuracy-last-hit"></div>
+          <div class="accuracy-label">Timing Accuracy</div>
+          <div class="accuracy-stats">
+            <div class="accuracy-stat">
+              <div class="stat-num" id="acc-avg">--</div>
+              <div class="stat-lbl">Avg (ms)</div>
+            </div>
+            <div class="accuracy-stat">
+              <div class="stat-num text-teal" id="acc-perfect">0</div>
+              <div class="stat-lbl">Perfect</div>
+            </div>
+            <div class="accuracy-stat">
+              <div class="stat-num text-gold" id="acc-good">0</div>
+              <div class="stat-lbl">Good</div>
+            </div>
+            <div class="accuracy-stat">
+              <div class="stat-num" style="color:var(--danger)" id="acc-miss">0</div>
+              <div class="stat-lbl">Miss</div>
+            </div>
+          </div>
+          <div class="tap-history" id="tap-history"></div>
+        </div>
+      </div>`;
+      return html;
+    },
+
+    // Keyboard mapping
+    keyMap: { 'q': 'hihat', 'w': 'snare', 'e': 'crash', 'a': 'tom1', 's': 'kick', 'd': 'tom2' }
+  };
+
+  // ============================================================
+  // ACCURACY TRACKER — measures tap timing vs metronome grid
+  // ============================================================
+  const AccuracyTracker = {
+    hits: [],         // array of offset values in ms
+    maxHistory: 32,
+
+    recordHit(offsetMs) {
+      this.hits.push(offsetMs);
+      if (this.hits.length > this.maxHistory) this.hits.shift();
+      this.updateDisplay(offsetMs);
+    },
+
+    getGrade(absMs) {
+      if (absMs <= 10) return 'perfect';
+      if (absMs <= 25) return 'good';
+      if (absMs <= 50) return 'ok';
+      return 'miss';
+    },
+
+    updateDisplay(lastOffsetMs) {
+      const absMs = Math.abs(lastOffsetMs);
+      const grade = this.getGrade(absMs);
+      const sign = lastOffsetMs > 0.5 ? '+' : (lastOffsetMs < -0.5 ? '' : '');
+
+      // Last hit display
+      const el = document.getElementById('accuracy-last-hit');
+      if (el) {
+        const labels = { perfect: 'PERFECT', good: 'GOOD', ok: 'OK', miss: 'MISS' };
+        el.className = `accuracy-last-hit ${grade}`;
+        el.textContent = `${labels[grade]} ${sign}${Math.round(lastOffsetMs)}ms`;
+      }
+
+      // Stats
+      const perfect = this.hits.filter(h => this.getGrade(Math.abs(h)) === 'perfect').length;
+      const good = this.hits.filter(h => this.getGrade(Math.abs(h)) === 'good').length;
+      const miss = this.hits.filter(h => this.getGrade(Math.abs(h)) === 'miss').length;
+      const avg = this.hits.length > 0
+        ? Math.round(this.hits.reduce((s, h) => s + Math.abs(h), 0) / this.hits.length)
+        : '--';
+
+      const avgEl = document.getElementById('acc-avg');
+      const perfEl = document.getElementById('acc-perfect');
+      const goodEl = document.getElementById('acc-good');
+      const missEl = document.getElementById('acc-miss');
+      if (avgEl) avgEl.textContent = avg;
+      if (perfEl) perfEl.textContent = perfect;
+      if (goodEl) goodEl.textContent = good;
+      if (missEl) missEl.textContent = miss;
+
+      // History dots
+      const histEl = document.getElementById('tap-history');
+      if (histEl) {
+        histEl.innerHTML = this.hits.map(h => {
+          const g = this.getGrade(Math.abs(h));
+          return `<div class="tap-dot ${g}"></div>`;
+        }).join('');
+      }
+    },
+
+    reset() {
+      this.hits = [];
+      const el = document.getElementById('accuracy-last-hit');
+      if (el) { el.textContent = ''; el.className = 'accuracy-last-hit'; }
+      ['acc-avg', 'acc-perfect', 'acc-good', 'acc-miss'].forEach(id => {
+        const e = document.getElementById(id);
+        if (e) e.textContent = id === 'acc-avg' ? '--' : '0';
+      });
+      const histEl = document.getElementById('tap-history');
+      if (histEl) histEl.innerHTML = '';
+    }
+  };
+
+  // ============================================================
+  // LIVE ACCENT GRID — highlights notes in sync with metronome
+  // ============================================================
+  const LiveGrid = {
+    playing: false,
+
+    start() {
+      this.playing = true;
+      State._accentGridCallback = (beat, subBeat) => {
+        if (!this.playing) return;
+        const notes = document.querySelectorAll('.rhythm-grid .rhythm-note');
+        if (!notes.length) return;
+        const totalSubdivisions = parseInt(document.querySelector('.rhythm-grid')?.dataset?.subdivision || '4');
+        const idx = beat * totalSubdivisions + subBeat;
+        notes.forEach((n, i) => {
+          n.classList.toggle('playing', i === idx);
+        });
+      };
+    },
+
+    stop() {
+      this.playing = false;
+      State._accentGridCallback = null;
+      document.querySelectorAll('.rhythm-note.playing').forEach(n => n.classList.remove('playing'));
+    }
+  };
+
+  // ============================================================
+  // ANIMATED POLYRHYTHM — sweep hand + sound
+  // ============================================================
+  const PolyrhythmPlayer = {
+    animationId: null,
+    isPlaying: false,
+    startTime: 0,
+    a: 4,
+    b: 3,
+    bpm: 60,
+
+    start(a, b, bpm) {
+      Metro.init();
+      this.a = a;
+      this.b = b;
+      this.bpm = bpm || 60;
+      this.isPlaying = true;
+      this.startTime = Metro.audioCtx.currentTime;
+      this.scheduleBeats();
+      this.animate();
+    },
+
+    stop() {
+      this.isPlaying = false;
+      cancelAnimationFrame(this.animationId);
+      document.querySelectorAll('.polyrhythm-dot').forEach(d => d.classList.remove('active'));
+      const sweep = document.querySelector('.polyrhythm-sweep');
+      if (sweep) sweep.style.transform = 'rotate(-90deg)';
+    },
+
+    toggle(a, b, bpm) {
+      if (this.isPlaying) this.stop();
+      else this.start(a, b, bpm);
+    },
+
+    scheduleBeats() {
+      const ctx = Metro.audioCtx;
+      const measureDuration = (60.0 / this.bpm) * 4; // 1 measure of 4 beats
+      const numMeasures = 16; // schedule ahead 16 measures
+
+      for (let m = 0; m < numMeasures; m++) {
+        const mStart = this.startTime + m * measureDuration;
+
+        // Rhythm A
+        for (let i = 0; i < this.a; i++) {
+          const t = mStart + (i / this.a) * measureDuration;
+          this.scheduleClick(t, 900, 0.3);
+        }
+        // Rhythm B
+        for (let i = 0; i < this.b; i++) {
+          const t = mStart + (i / this.b) * measureDuration;
+          this.scheduleClick(t, 600, 0.25);
+        }
+      }
+    },
+
+    scheduleClick(time, freq, vol) {
+      const ctx = Metro.audioCtx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+      osc.start(time);
+      osc.stop(time + 0.04);
+    },
+
+    animate() {
+      if (!this.isPlaying) return;
+      const ctx = Metro.audioCtx;
+      const now = ctx.currentTime;
+      const measureDuration = (60.0 / this.bpm) * 4;
+      const elapsed = (now - this.startTime) % measureDuration;
+      const progress = elapsed / measureDuration;
+
+      // Rotate sweep hand
+      const sweep = document.querySelector('.polyrhythm-sweep');
+      if (sweep) {
+        const angle = progress * 360 - 90;
+        sweep.style.transform = `rotate(${angle}deg)`;
+      }
+
+      // Highlight dots
+      const aDots = document.querySelectorAll('.polyrhythm-dot.rhythm-a');
+      const bDots = document.querySelectorAll('.polyrhythm-dot.rhythm-b');
+
+      aDots.forEach((d, i) => {
+        const dotProgress = i / this.a;
+        const dist = Math.abs(progress - dotProgress);
+        d.classList.toggle('active', dist < 0.03 || (1 - dist) < 0.03);
+      });
+
+      bDots.forEach((d, i) => {
+        const dotProgress = i / this.b;
+        const dist = Math.abs(progress - dotProgress);
+        d.classList.toggle('active', dist < 0.03 || (1 - dist) < 0.03);
+      });
+
+      this.animationId = requestAnimationFrame(() => this.animate());
     }
   };
 
@@ -458,14 +929,14 @@
   const RhythmDisplay = {
     renderAccentGrid(pattern) {
       const labels = ['1', 'e', '&', 'a'];
-      let html = '<div class="rhythm-grid">';
+      let html = `<div class="rhythm-grid" data-subdivision="${pattern.subdivision}">`;
       for (let beat = 0; beat < pattern.beats; beat++) {
         html += '<div class="rhythm-beat">';
         for (let sub = 0; sub < pattern.subdivision; sub++) {
           const idx = beat * pattern.subdivision + sub;
           const isAccent = pattern.accents.includes(idx);
           const label = sub === 0 ? (beat + 1) : labels[sub] || '';
-          html += `<div class="rhythm-note ${isAccent ? 'accent' : ''}">
+          html += `<div class="rhythm-note ${isAccent ? 'accent' : ''}" data-idx="${idx}">
             ${isAccent ? '>' : ''} ${label}
             <span class="rhythm-note-label">${isAccent ? 'ACC' : 'tap'}</span>
           </div>`;
@@ -473,6 +944,9 @@
         html += '</div>';
       }
       html += '</div>';
+      html += `<div class="mt-2" style="display:flex;gap:8px;justify-content:center">
+        <button class="metro-btn" data-action="play-grid">&#9654; Play Grid</button>
+      </div>`;
       return html;
     },
 
@@ -542,9 +1016,13 @@
         html += `<div class="polyrhythm-dot rhythm-b" style="left:${x}px;top:${y}px" data-rhythm="b" data-index="${i}"></div>`;
       }
 
+      // Add sweep hand
+      html += `<div class="polyrhythm-sweep" style="transform:rotate(-90deg)"></div>`;
+
       html += `</div>
         <div class="polyrhythm-label">${a}:${b}</div>
         <div class="polyrhythm-sublabel">Outer: ${a} beats &middot; Inner: ${b} beats &middot; LCM: ${lcm(a,b)} pulses</div>
+        <button class="polyrhythm-play-btn" data-action="play-polyrhythm" data-a="${a}" data-b="${b}">&#9654; Play Polyrhythm</button>
       </div>`;
       return html;
     },
@@ -691,6 +1169,11 @@
         case 'phase': content.innerHTML = this.renderPhase(params.phaseId); break;
         case 'exercise': content.innerHTML = this.renderExercise(params.exerciseId); break;
       }
+
+      // Clean up active tools when navigating away
+      LiveGrid.stop();
+      PolyrhythmPlayer.stop();
+      AccuracyTracker.reset();
 
       UI.updateHeader();
       window.scrollTo(0, 0);
@@ -863,16 +1346,30 @@
           <div class="exercise-tools">`;
 
       // Type-specific rendering
+      const showPads = ['metronome-practice', 'metronome-challenge', 'tempo-ladder',
+                        'rhythm-notation', 'sticking-display', 'timed-practice'].includes(exercise.type);
+
       switch (exercise.type) {
         case 'metronome-practice':
         case 'metronome-challenge':
         case 'tempo-ladder':
           if (exercise.targetBPM) {
-            html += `<div class="mb-2">
+            html += `<div class="mb-2" style="display:flex;gap:8px;flex-wrap:wrap">
               <button class="metro-btn" data-action="set-bpm" data-bpm="${exercise.targetBPM}">
                 &#9834; Set Metronome to ${exercise.targetBPM} BPM
-              </button>
-            </div>`;
+              </button>`;
+            // For metronome-challenge, offer the exercise's ghost mode
+            if (exercise.ghostMode) {
+              const ghostLabels = {
+                '2-4': '2 & 4 Only', '1-3': '1 & 3 Only',
+                'synco-e': 'Synco "e"', 'synco-and': 'Synco "&"',
+                'silent-bars': 'Silent Bars'
+              };
+              html += `<button class="metro-btn" data-action="set-ghost-mode" data-ghost="${exercise.ghostMode}">
+                &#128264; ${ghostLabels[exercise.ghostMode] || exercise.ghostMode}
+              </button>`;
+            }
+            html += `</div>`;
           }
           if (exercise.durationMinutes) {
             html += this.renderTimer(exercise.durationMinutes);
@@ -929,9 +1426,13 @@
           break;
 
         case 'video-study':
-          // Videos are shown from the parent lesson
           html += `<p class="text-muted">Watch the video lessons above in the lesson content, then mark this exercise complete.</p>`;
           break;
+      }
+
+      // Add tap pads for practice exercises
+      if (showPads) {
+        html += TapPads.renderPads();
       }
 
       html += `</div>
@@ -1045,10 +1546,60 @@
             }
             break;
           }
+
+          case 'tap-pad': {
+            TapPads.hitPad(target.dataset.pad);
+            break;
+          }
+
+          case 'set-ghost-mode': {
+            Metro.setGhostMode(target.dataset.ghost);
+            document.getElementById('metronome-panel').classList.add('open');
+            break;
+          }
+
+          case 'play-grid': {
+            if (LiveGrid.playing) {
+              LiveGrid.stop();
+              if (Metro.isPlaying) Metro.stop();
+              target.innerHTML = '&#9654; Play Grid';
+            } else {
+              LiveGrid.start();
+              if (!Metro.isPlaying) {
+                document.getElementById('metronome-panel').classList.add('open');
+                Metro.start();
+              }
+              target.innerHTML = '&#9724; Stop Grid';
+            }
+            break;
+          }
+
+          case 'play-polyrhythm': {
+            const a = parseInt(target.dataset.a);
+            const b = parseInt(target.dataset.b);
+            const bpmEl = document.getElementById('bpm-display');
+            const bpm = bpmEl ? parseInt(bpmEl.textContent) : 60;
+            PolyrhythmPlayer.toggle(a, b, bpm);
+            target.classList.toggle('playing', PolyrhythmPlayer.isPlaying);
+            target.innerHTML = PolyrhythmPlayer.isPlaying ? '&#9724; Stop' : '&#9654; Play Polyrhythm';
+            break;
+          }
         }
       };
     }
   };
+
+  // ============================================================
+  // TOUCH SUPPORT FOR TAP PADS
+  // ============================================================
+  // Use touchstart for zero-latency response on mobile
+  document.addEventListener('touchstart', (e) => {
+    const pad = e.target.closest('[data-action="tap-pad"]');
+    if (pad) {
+      e.preventDefault(); // prevent mouse event + scroll
+      TapPads.hitPad(pad.dataset.pad);
+    }
+  }, { passive: false });
 
   // ============================================================
   // METRONOME UI BINDINGS
@@ -1084,6 +1635,12 @@
     timeSig.onchange = () => Metro.setTimeSig(parseInt(timeSig.value));
     subdivision.onchange = () => Metro.setSubdivision(parseInt(subdivision.value));
 
+    // Ghost mode buttons
+    document.getElementById('ghost-mode-select').addEventListener('click', (e) => {
+      const btn = e.target.closest('.ghost-mode-btn');
+      if (btn) Metro.setGhostMode(btn.dataset.ghost);
+    });
+
     // Set initial values
     slider.value = Metro.bpm;
     document.getElementById('bpm-display').textContent = Metro.bpm;
@@ -1096,9 +1653,24 @@
   // ============================================================
   // KEYBOARD SHORTCUTS
   // ============================================================
+  const activeKeys = new Set();
   document.addEventListener('keydown', (e) => {
-    // Space to toggle metronome (only if not typing)
-    if (e.code === 'Space' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
+    // Prevent repeat triggers from held keys
+    if (activeKeys.has(e.code)) return;
+    activeKeys.add(e.code);
+
+    // Tap pad keys (Q, W, E, A, S, D)
+    const padId = TapPads.keyMap[e.key.toLowerCase()];
+    if (padId) {
+      e.preventDefault();
+      TapPads.hitPad(padId);
+      return;
+    }
+
+    // Space to toggle metronome
+    if (e.code === 'Space') {
       e.preventDefault();
       Metro.toggle();
     }
@@ -1111,7 +1683,14 @@
         Router.navigate('dashboard');
       }
       document.getElementById('metronome-panel').classList.remove('open');
+      // Stop any playing tools
+      LiveGrid.stop();
+      PolyrhythmPlayer.stop();
     }
+  });
+
+  document.addEventListener('keyup', (e) => {
+    activeKeys.delete(e.code);
   });
 
   // ============================================================

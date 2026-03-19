@@ -1407,6 +1407,295 @@ button {
 }
 
 /* ============================================================
+   TAP PADS
+   ============================================================ */
+.tap-pad-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.tap-pad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.tap-pad-header h4 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+.tap-pad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.tap-pad {
+  aspect-ratio: 1;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.tap-pad::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.tap-pad.hit::after { opacity: 1; }
+.tap-pad:active, .tap-pad.hit { transform: scale(0.93); }
+
+.tap-pad .pad-label { font-size: 0.7rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; }
+.tap-pad .pad-key { font-size: 0.6rem; opacity: 0.4; font-family: var(--font-mono); }
+
+.tap-pad.pad-kick {
+  background: rgba(155, 89, 182, 0.2);
+  border-color: rgba(155, 89, 182, 0.3);
+  color: var(--accent-purple);
+}
+.tap-pad.pad-kick.hit { border-color: var(--accent-purple); box-shadow: 0 0 20px rgba(155,89,182,0.4); }
+
+.tap-pad.pad-snare {
+  background: rgba(255, 107, 53, 0.2);
+  border-color: rgba(255, 107, 53, 0.3);
+  color: var(--accent-primary);
+}
+.tap-pad.pad-snare.hit { border-color: var(--accent-primary); box-shadow: 0 0 20px rgba(255,107,53,0.4); }
+
+.tap-pad.pad-hihat {
+  background: rgba(255, 200, 87, 0.2);
+  border-color: rgba(255, 200, 87, 0.3);
+  color: var(--accent-secondary);
+}
+.tap-pad.pad-hihat.hit { border-color: var(--accent-secondary); box-shadow: 0 0 20px rgba(255,200,87,0.4); }
+
+.tap-pad.pad-tom1 {
+  background: rgba(78, 205, 196, 0.2);
+  border-color: rgba(78, 205, 196, 0.3);
+  color: var(--accent-tertiary);
+}
+.tap-pad.pad-tom1.hit { border-color: var(--accent-tertiary); box-shadow: 0 0 20px rgba(78,205,196,0.4); }
+
+.tap-pad.pad-tom2 {
+  background: rgba(46, 213, 115, 0.2);
+  border-color: rgba(46, 213, 115, 0.3);
+  color: var(--success);
+}
+.tap-pad.pad-tom2.hit { border-color: var(--success); box-shadow: 0 0 20px rgba(46,213,115,0.4); }
+
+.tap-pad.pad-crash {
+  background: rgba(232, 232, 236, 0.1);
+  border-color: rgba(232, 232, 236, 0.2);
+  color: var(--text-primary);
+}
+.tap-pad.pad-crash.hit { border-color: var(--text-primary); box-shadow: 0 0 20px rgba(232,232,236,0.2); }
+
+/* Tap Accuracy Feedback */
+.tap-accuracy {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.accuracy-last-hit {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+  min-height: 2.2rem;
+}
+
+.accuracy-last-hit.perfect { color: var(--success); }
+.accuracy-last-hit.good { color: var(--accent-secondary); }
+.accuracy-last-hit.ok { color: var(--accent-primary); }
+.accuracy-last-hit.miss { color: var(--danger); }
+
+.accuracy-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.accuracy-stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.accuracy-stat {
+  text-align: center;
+}
+
+.accuracy-stat .stat-num {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.accuracy-stat .stat-lbl {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tap History */
+.tap-history {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 12px;
+  min-height: 24px;
+  flex-wrap: wrap;
+}
+
+.tap-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.tap-dot.perfect { background: var(--success); }
+.tap-dot.good { background: var(--accent-secondary); }
+.tap-dot.ok { background: var(--accent-primary); }
+.tap-dot.miss { background: var(--danger); }
+
+/* ============================================================
+   GHOST BEAT METRONOME MODE
+   ============================================================ */
+.metro-ghost-mode {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.metro-ghost-mode label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.ghost-mode-select {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ghost-mode-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.ghost-mode-btn:hover { border-color: var(--accent-primary); color: var(--text-primary); }
+.ghost-mode-btn.active { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+
+.pulse-dot.ghost {
+  opacity: 0.25;
+  border-style: dashed;
+}
+
+.pulse-dot.ghost.active {
+  background: transparent;
+  border-color: var(--text-muted);
+  box-shadow: none;
+  transform: scale(1);
+}
+
+/* Ghost beat count display */
+.ghost-bar-counter {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+  min-height: 1.2rem;
+}
+
+.ghost-bar-counter .bar-num { color: var(--accent-secondary); font-weight: 700; }
+.ghost-bar-counter .silent-label { color: var(--danger); }
+
+/* ============================================================
+   LIVE ACCENT GRID PLAYBACK
+   ============================================================ */
+.rhythm-note.playing {
+  outline: 2px solid var(--accent-secondary);
+  outline-offset: 2px;
+  animation: notePulse 0.15s ease;
+}
+
+@keyframes notePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================================
+   ANIMATED POLYRHYTHM
+   ============================================================ */
+.polyrhythm-sweep {
+  animation: none;
+}
+
+.polyrhythm-sweep.animating {
+  animation: none; /* driven by JS */
+}
+
+.polyrhythm-play-btn {
+  margin-top: 12px;
+  padding: 8px 24px;
+  border-radius: var(--radius-md);
+  background: var(--accent-primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid var(--accent-primary);
+  transition: var(--transition);
+}
+
+.polyrhythm-play-btn:hover { opacity: 0.9; }
+.polyrhythm-play-btn.playing { background: var(--danger); border-color: var(--danger); }
+
+/* ============================================================
    UTILITY CLASSES
    ============================================================ */
 .hidden { display: none !important; }

@@ -66,19 +66,21 @@ const COURSE_DATA = {
           exercises: [
             {
               id: "1-2-1",
-              type: "metronome-practice",
+              type: "metronome-challenge",
               title: "Backbeat Click",
-              instructions: "Program the metronome to click only on beats 2 and 4, mimicking a jazz hi-hat. Maintain a steady groove at 80 BPM while the click pulls against your downbeat.",
+              instructions: "Use the \u201C2 & 4 Only\u201D click mode (button below or in the metronome panel). The click only sounds on beats 2 and 4, mimicking a jazz hi-hat. Maintain a steady groove at 80 BPM while the click pulls against your downbeat. Use the tap pads to practice your timing \u2014 the accuracy tracker will show how close you land to the grid.",
               targetBPM: 80,
+              ghostMode: "2-4",
               durationMinutes: 10,
               xpReward: 75
             },
             {
               id: "1-2-2",
-              type: "metronome-practice",
+              type: "metronome-challenge",
               title: "Silent Metronome Challenge",
-              instructions: "Play 4 bars with the metronome, then the metronome drops out for 4 bars, then returns. Were you still in phase? Repeat at 90 BPM until you consistently nail the re-entry.",
+              instructions: "Use the \u201CSilent Bars\u201D click mode (button below or in the metronome panel). The metronome plays for 2 bars, then drops out for 2 bars, and repeats. Your job: stay perfectly in phase during the silent bars. Use the tap pads to check your timing when the click returns.",
               targetBPM: 90,
+              ghostMode: "silent-bars",
               durationMinutes: 10,
               xpReward: 100
             },
