@@ -1,0 +1,53 @@
+{
+  "name": "KaaroPercussion — Master the Silence Between the Beats",
+  "short_name": "KaaroPercussion",
+  "description": "A self-paced, gamified percussion training tool. 8 phases from foundational rhythm to advanced temporal architecture with built-in metronome, virtual tap pads, and accuracy tracking.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0a0a0f",
+  "background_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "og-image.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "KaaroPercussion dashboard showing 8 phases of percussion training"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Metronome",
+      "short_name": "Metronome",
+      "description": "Jump straight to the built-in metronome",
+      "url": "/#metronome"
+    },
+    {
+      "name": "Phase I: Temporal Architecture",
+      "short_name": "Phase I",
+      "description": "Start with foundational metronome practice",
+      "url": "/#phase-1"
+    }
+  ],
+  "categories": ["education", "music", "games"],
+  "lang": "en",
+  "dir": "ltr"
+}

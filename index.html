@@ -1,12 +1,189 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Primary Meta Tags -->
   <title>KaaroPercussion — Master the Silence Between the Beats</title>
-  <meta name="description" content="A self-paced, gamified percussion training tool. From foundational rhythm to advanced temporal architecture.">
+  <meta name="title" content="KaaroPercussion — Master the Silence Between the Beats">
+  <meta name="description" content="A free, self-paced percussion training game. 8 phases from foundational rhythm to advanced temporal architecture. Built-in metronome with ghost beats, virtual tap pads with timing accuracy tracking, XP leveling, and curated video lessons.">
+  <meta name="keywords" content="drums, percussion, drumming, practice, metronome, rhythm training, drum rudiments, polyrhythm, subdivisions, limb independence, micro-timing, stick control, drum lessons, music education, tap pads, beat trainer">
+  <meta name="author" content="KaaroPercussion">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <meta name="language" content="English">
+  <meta name="revisit-after" content="7 days">
+  <meta name="rating" content="General">
+  <link rel="canonical" href="https://karx.github.io/kaaroPercussion/">
+
+  <!-- Theme -->
   <meta name="theme-color" content="#0a0a0f">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥁</text></svg>">
+  <meta name="color-scheme" content="dark">
+  <meta name="msapplication-TileColor" content="#0a0a0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KaaroPercussion">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://karx.github.io/kaaroPercussion/">
+  <meta property="og:title" content="KaaroPercussion — Master the Silence Between the Beats">
+  <meta property="og:description" content="Free, self-paced percussion training game. 8 phases, 48 exercises, built-in metronome with ghost beats, virtual tap pads with accuracy tracking. Level up from Novice to Temporal Wizard.">
+  <meta property="og:image" content="https://karx.github.io/kaaroPercussion/og-image.svg">
+  <meta property="og:image:secure_url" content="https://karx.github.io/kaaroPercussion/og-image.svg">
+  <meta property="og:image:type" content="image/svg+xml">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="KaaroPercussion dashboard showing 8 phases of percussion training with polyrhythm circle visualization">
+  <meta property="og:site_name" content="KaaroPercussion">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://karx.github.io/kaaroPercussion/">
+  <meta name="twitter:title" content="KaaroPercussion — Master the Silence Between the Beats">
+  <meta name="twitter:description" content="Free percussion training game. 8 phases, built-in metronome with ghost beats, virtual tap pads, XP system. From foundational rhythm to polyrhythms &amp; metric modulation.">
+  <meta name="twitter:image" content="https://karx.github.io/kaaroPercussion/og-image.svg">
+  <meta name="twitter:image:alt" content="KaaroPercussion — 8-phase percussion training tool with metronome, tap pads, and accuracy tracking">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/svg+xml" sizes="32x32" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <!-- Web App Manifest -->
+  <link rel="manifest" href="site.webmanifest">
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "KaaroPercussion",
+    "alternateName": "Kaaro Percussion Trainer",
+    "url": "https://karx.github.io/kaaroPercussion/",
+    "description": "A free, self-paced, gamified percussion training tool. 8 phases covering foundational rhythm, biomechanics, subdivisions, limb independence, micro-timing, polyrhythms, hand percussion, and professional practice architecture.",
+    "applicationCategory": "EducationalApplication",
+    "applicationSubCategory": "Music Education",
+    "operatingSystem": "Any",
+    "browserRequirements": "Requires JavaScript. Requires Web Audio API.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "KaaroPercussion"
+    },
+    "image": "https://karx.github.io/kaaroPercussion/og-image.svg",
+    "screenshot": "https://karx.github.io/kaaroPercussion/og-image.svg",
+    "featureList": [
+      "Built-in Web Audio metronome with ghost beat modes (silent bars, backbeat only, syncopation)",
+      "6 virtual tap pads with synthesized drum sounds (keyboard & touch)",
+      "Real-time timing accuracy tracking (ms offset from grid)",
+      "8-phase structured curriculum from beginner to advanced",
+      "48 exercises with interactive tools",
+      "XP system with 10 levels and streak tracking",
+      "Visual rhythm notation: accent grids, sticking patterns, polyrhythm circles",
+      "Animated polyrhythm visualization with sweep hand",
+      "Curated YouTube video lessons embedded per phase",
+      "Practice timer for structured sessions",
+      "Progress saved locally — no account needed",
+      "Mobile-responsive dark theme"
+    ],
+    "educationalLevel": "Beginner to Advanced",
+    "learningResourceType": "Interactive Resource",
+    "teaches": [
+      "Drum rudiments",
+      "Rhythmic subdivision",
+      "Metronomic timekeeping",
+      "Limb independence",
+      "Polyrhythms",
+      "Metric modulation",
+      "Micro-timing and pocket feel",
+      "Hand percussion technique",
+      "Practice routine architecture"
+    ],
+    "inLanguage": "en",
+    "isAccessibleForFree": true,
+    "interactionStatistic": [
+      {
+        "@type": "InteractionCounter",
+        "interactionType": "https://schema.org/PlayAction",
+        "userInteractionCount": 48,
+        "description": "Total exercises across 8 phases"
+      }
+    ],
+    "potentialAction": [
+      {
+        "@type": "PlayAction",
+        "name": "Start Training",
+        "target": "https://karx.github.io/kaaroPercussion/"
+      },
+      {
+        "@type": "InteractAction",
+        "name": "Use Metronome",
+        "target": "https://karx.github.io/kaaroPercussion/#metronome",
+        "description": "Open the built-in metronome with ghost beat modes"
+      },
+      {
+        "@type": "InteractAction",
+        "name": "Practice with Tap Pads",
+        "description": "Use virtual drum pads to practice timing against the metronome"
+      }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "0",
+      "bestRating": "100",
+      "worstRating": "0",
+      "ratingCount": "0",
+      "description": "XP-based progression score (Novice to Temporal Wizard)"
+    }
+  }
+  </script>
+
+  <!-- Course Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "name": "Comprehensive Percussion Training: From Foundational Rhythm to Advanced Temporal Architecture",
+    "description": "A structured, 8-phase percussion curriculum covering metronomic timekeeping, stick control, subdivisions, limb independence, micro-timing, polyrhythms, hand percussion, and professional practice routines.",
+    "provider": {
+      "@type": "Organization",
+      "name": "KaaroPercussion"
+    },
+    "educationalLevel": "Beginner to Advanced",
+    "isAccessibleForFree": true,
+    "inLanguage": "en",
+    "numberOfCredits": 0,
+    "hasCourseInstance": {
+      "@type": "CourseInstance",
+      "courseMode": "Online",
+      "courseWorkload": "Self-paced"
+    },
+    "syllabusSections": [
+      "Phase I: Temporal Architecture & Metronomic Continuum",
+      "Phase II: Kinesiology, Biomechanics & Rudiments",
+      "Phase III: Subdivision Fluency & Grid Methodology",
+      "Phase IV: Four-Way Coordination & Limb Independence",
+      "Phase V: Expressive Micro-Timing & The Pocket",
+      "Phase VI: Advanced Rhythmic Architecture — Polyrhythms & Metric Modulation",
+      "Phase VII: Hand Percussion — Somatic Rhythmic Expression",
+      "Phase VIII: Professional Practice Regimen & Technology Integration"
+    ]
+  }
+  </script>
+
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.youtube-nocookie.com">
+
+  <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
