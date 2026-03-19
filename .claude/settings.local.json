@@ -4,7 +4,9 @@
       "Bash(node -c \"D:/src/kaaroPercussion/app.js\")",
       "Bash(node -c \"D:/src/kaaroPercussion/data.js\")",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:karx.github.io)"
     ]
   }
 }
